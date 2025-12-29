@@ -50,7 +50,12 @@ export default function Auth() {
       toast.success('Welcome back!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+      console.error('Login error:', error);
+      if (error.code === 'email_not_confirmed' || error.message?.includes('Email not confirmed')) {
+        toast.error('Email not confirmed. Please check your inbox for a verification link or contact an administrator.');
+      } else {
+        toast.error(error.message || 'Failed to sign in');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -88,6 +93,7 @@ export default function Auth() {
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (error: any) {
+      console.log(JSON.stringify(error,null,2));
       toast.error(error.message || 'Failed to create account');
     } finally {
       setIsLoading(false);

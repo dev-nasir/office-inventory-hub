@@ -119,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
+        emailRedirectTo: window.location.origin,
         data: {
           name,
           department, // Optional: if we want to store this in metadata too
@@ -131,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       setIsLoading(false);
+      console.log('Signup error:', error);
       throw error;
     }
     

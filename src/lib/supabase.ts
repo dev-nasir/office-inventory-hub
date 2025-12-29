@@ -20,6 +20,9 @@ if (!isValidSetup) {
   console.error('Current URL:', supabaseUrl);
 }
 
+console.log("supabaseUrl ",supabaseUrl)
+console.log('Supabase URL:', supabaseUrl ? 'Provided' : 'Not Provided');
+
 // Prevent crash by using a fallback if invalid. 
 // This allows the app to load so the user can see the problem, rather than a blank white screen.
 export const supabase = createClient(
