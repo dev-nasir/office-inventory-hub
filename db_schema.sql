@@ -16,9 +16,9 @@ DROP TABLE IF EXISTS public.history CASCADE;
 -- 1. ENUMS
 CREATE TYPE user_role AS ENUM ('admin', 'employee');
 CREATE TYPE department_type AS ENUM ('CMS', 'Digital Marketing', 'Management', 'MERN Stack', 'Sales', 'UI/UX');
-CREATE TYPE request_status AS ENUM ('pending', 'approved', 'rejected');
+CREATE TYPE request_status AS ENUM ('pending', 'approved', 'rejected', 'completed');
 CREATE TYPE inventory_status AS ENUM ('assigned', 'returned', 'available');
-CREATE TYPE action_type AS ENUM ('assigned', 'returned', 'requested', 'approved', 'rejected');
+CREATE TYPE action_type AS ENUM ('assigned', 'returned', 'requested', 'approved', 'rejected', 'completed');
 
 -- 2. PROFILES (Extends auth.users)
 CREATE TABLE public.profiles (

@@ -9,7 +9,7 @@ export interface FieldDefinition {
 
 export const categoryFields: Record<string, FieldDefinition[]> = {
   'Laptop': [
-    { name: 'model', label: 'Model', type: 'text', placeholder: 'e.g., Dell XPS 15' },
+    { name: 'model', label: 'Model', type: 'text', placeholder: 'e.g., Dell XPS 15 / MacBook Pro 14"' },
     { 
       name: 'ram', 
       label: 'RAM', 
@@ -20,85 +20,54 @@ export const categoryFields: Record<string, FieldDefinition[]> = {
       name: 'storage', 
       label: 'Storage', 
       type: 'select', 
-      options: ['128GB SSD', '256GB SSD', '512GB SSD', '1TB SSD', '2TB SSD', '4TB SSD', '500GB HDD', '1TB HDD'] 
+      options: ['256GB SSD', '512GB SSD', '1TB SSD', '2TB SSD', '4TB SSD', '500GB HDD', '1TB HDD'] 
     },
     { name: 'serialNumber', label: 'Serial Number', type: 'text', placeholder: 'Enter serial number' },
-    { name: 'company', label: 'Company/Brand', type: 'text', placeholder: 'e.g., Dell, HP, Lenovo' },
+    { 
+      name: 'company', 
+      label: 'Company/Brand', 
+      type: 'select', 
+      options: ['Dell', 'HP', 'Lenovo', 'Apple', 'Asus', 'Acer', 'Microsoft', 'Samsung', 'Toshiba', 'MSI', 'Huawei', 'Other']
+    },
   ],
-  'MacBook': [
-    { name: 'model', label: 'Model', type: 'text', placeholder: 'e.g., MacBook Pro 14"' },
+  'Desktop': [
+    { name: 'model', label: 'Model', type: 'text', placeholder: 'e.g., OptiPlex 7090' },
+    { name: 'processor', label: 'Processor', type: 'text', placeholder: 'e.g., Core i7-12700' },
     { 
       name: 'ram', 
       label: 'RAM', 
       type: 'select', 
-      options: ['8GB', '16GB', '18GB', '24GB', '32GB', '36GB', '48GB', '64GB', '96GB', '128GB'] 
+      options: ['8GB', '16GB', '32GB', '64GB', '128GB'] 
     },
+    { name: 'gpu', label: 'GPU', type: 'text', placeholder: 'e.g., RTX 3060' },
     { 
-      name: 'storage', 
-      label: 'Storage', 
+      name: 'company', 
+      label: 'Company/Brand', 
       type: 'select', 
-      options: ['256GB SSD', '512GB SSD', '1TB SSD', '2TB SSD', '4TB SSD', '8TB SSD'] 
+      options: ['Dell', 'HP', 'Lenovo', 'Custom Built', 'Apple', 'Acer', 'ASUS', 'Other'] 
     },
-    { name: 'serialNumber', label: 'Serial Number', type: 'text', placeholder: 'Enter serial number' },
-    { name: 'company', label: 'Company/Brand', type: 'text', placeholder: 'Apple' },
   ],
-  'Mobile': [
-    { name: 'model', label: 'Model', type: 'text', placeholder: 'e.g., iPhone 14 Pro' },
+  'Accessories': [
+    { name: 'type', label: 'Type', type: 'text', placeholder: 'e.g., Mouse, Keyboard, Monitor, Phone' },
+    { name: 'model', label: 'Model', type: 'text', placeholder: 'Enter model' },
     { 
-      name: 'storage', 
-      label: 'Storage', 
+      name: 'company', 
+      label: 'Company/Brand', 
       type: 'select', 
-      options: ['32GB', '64GB', '128GB', '256GB', '512GB', '1TB'] 
+      options: ['Logitech', 'Razer', 'Apple', 'Samsung', 'Dell', 'LG', 'Sony', 'Anker', 'Belkin', 'UGREEN', 'Other'] 
     },
-    { name: 'serialNumber', label: 'Serial Number', type: 'text', placeholder: 'Enter serial number' },
-    { name: 'company', label: 'Company/Brand', type: 'text', placeholder: 'e.g., Apple, Samsung' },
-  ],
-  'LED/LCD': [
-    { name: 'size', label: 'Size', type: 'text', placeholder: 'e.g., 27 inch' },
-    { name: 'resolution', label: 'Resolution', type: 'text', placeholder: 'e.g., 2560x1440' },
-    { name: 'model', label: 'Model', type: 'text', placeholder: 'Enter model' },
-    { name: 'company', label: 'Company/Brand', type: 'text', placeholder: 'e.g., Dell, LG, Samsung' },
-  ],
-  'Mouse': [
-    { name: 'model', label: 'Model', type: 'text', placeholder: 'Enter model' },
     { 
       name: 'connectionType', 
       label: 'Connection Type', 
       type: 'select',
-      options: ['Wired', 'Wireless', 'Bluetooth']
+      options: ['Wired', 'Wireless', 'Bluetooth', 'USB-C', 'Lighting', 'Other']
     },
-    { name: 'company', label: 'Company/Brand', type: 'text', placeholder: 'e.g., Logitech, Razer' },
   ],
-  'Keyboard': [
-    { name: 'model', label: 'Model', type: 'text', placeholder: 'Enter model' },
-    { 
-      name: 'connectionType', 
-      label: 'Connection Type', 
-      type: 'select',
-      options: ['Wired', 'Wireless', 'Bluetooth']
-    },
-    { name: 'company', label: 'Company/Brand', type: 'text', placeholder: 'e.g., Logitech, Corsair' },
-  ],
-  'Type-C Connector': [
-    { name: 'length', label: 'Length', type: 'text', placeholder: 'e.g., 1m, 2m' },
-    { 
-      name: 'type', 
-      label: 'Type', 
-      type: 'select',
-      options: ['USB-C to USB-C', 'USB-C to USB-A', 'USB-C to HDMI', 'USB-C to DisplayPort']
-    },
-    { name: 'company', label: 'Company/Brand', type: 'text', placeholder: 'e.g., Anker, Belkin' },
-  ],
-  'Data Device': [
-    { 
-      name: 'type', 
-      label: 'Type', 
-      type: 'select',
-      options: ['USB Drive', 'External HDD', 'External SSD', 'SD Card']
-    },
-    { name: 'capacity', label: 'Capacity', type: 'text', placeholder: 'e.g., 1TB, 256GB' },
-    { name: 'model', label: 'Model', type: 'text', placeholder: 'Enter model' },
-    { name: 'company', label: 'Company/Brand', type: 'text', placeholder: 'e.g., SanDisk, Samsung' },
+  'Furniture': [
+    { name: 'type', label: 'Type', type: 'select', options: ['Chair', 'Desk', 'Table', 'Cabinet', 'Other'] },
+    { name: 'color', label: 'Color', type: 'text', placeholder: 'e.g., Black, Wood' },
+    { name: 'dimensions', label: 'Dimensions', type: 'text', placeholder: 'e.g., 120x60cm' },
+    { name: 'brand', label: 'Brand', type: 'text', placeholder: 'e.g., IKEA, Herman Miller' },
   ],
   'Other': [
     { name: 'specifications', label: 'Specifications', type: 'textarea', placeholder: 'Enter detailed specifications' },

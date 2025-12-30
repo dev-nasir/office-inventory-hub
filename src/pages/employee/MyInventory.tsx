@@ -45,20 +45,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Package, Plus, Edit, Trash2, Loader2, RotateCcw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { categoryFields } from '@/lib/categoryFields';
+import { INVENTORY_CATEGORIES } from '@/lib/constants';
 import { toast } from 'sonner';
 import type { InventoryItem } from '@/types/inventory';
 
-const categories = [
-  'Mouse',
-  'Keyboard',
-  'Mobile',
-  'LED/LCD',
-  'Type-C Connector',
-  'MacBook',
-  'Laptop',
-  'Data Device',
-  'Other',
-];
+const categories = INVENTORY_CATEGORIES;
 
 export default function MyInventory() {
   const { user } = useAuth();

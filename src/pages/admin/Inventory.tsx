@@ -37,19 +37,10 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { exportToCSV } from '@/lib/exportUtils';
 import { categoryFields } from '@/lib/categoryFields';
+import { INVENTORY_CATEGORIES } from '@/lib/constants';
 import type { InventoryItem } from '@/types/inventory';
 
-const categories = [
-  'Mouse',
-  'Keyboard',
-  'Mobile',
-  'LED/LCD',
-  'Type-C Connector',
-  'MacBook',
-  'Laptop',
-  'Data Device',
-  'Other',
-];
+const categories = INVENTORY_CATEGORIES;
 
 export default function Inventory() {
   const { user } = useAuth();

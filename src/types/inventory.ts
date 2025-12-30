@@ -8,7 +8,7 @@ export type Department =
   | 'Sales'
   | 'UI/UX';
 
-export type RequestStatus = 'pending' | 'approved' | 'rejected';
+export type RequestStatus = 'pending' | 'approved' | 'rejected' | 'completed';
 
 export type InventoryStatus = 'assigned' | 'returned' | 'available';
 
@@ -63,6 +63,14 @@ export interface InventoryRequest {
   reviewed_by?: string;
   item?: InventoryItem;
   employee?: User;
+  urgency?: string;
+  expectedDate?: string;
+  expected_date?: string;
+  adminComment?: string;
+  admin_comment?: string;
+  rejectReason?: string;
+  reject_reason?: string;
+  brand?: string;
   reviewer?: {
     id: string;
     name: string;
