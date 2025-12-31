@@ -51,7 +51,7 @@ export default function Requests() {
         .select(`
           *,
           employee:profiles!employee_id(id, name, email, department),
-          item:inventory_items!item_id(id, name, category, available_quantity),
+          item:inventory_items(id, name, category, available_quantity),
           reviewer:profiles!reviewed_by(id, name, email)
         `)
         .order('created_at', { ascending: false });
@@ -78,7 +78,7 @@ export default function Requests() {
   const [itemCondition, setItemCondition] = useState('New');
 
   const approveMutation = useMutation({
-    mutationFn: async (vars: { id: string, comment?: string }) => {
+    mutationFn: async (vars: { id: string, comment?: string, request: any }) => {
       const { error } = await supabase
         .from('requests')
         .update({
@@ -92,24 +92,22 @@ export default function Requests() {
 
       // Note: We don't create assignment yet, that's in "Complete"
       // But we might want to decrement stock here to "reserve" it
-      const request = requests.find(r => r.id === vars.id);
-      if (request && request.item) {
+      if (vars.request && vars.request.item_id) {
         const { error: invError } = await supabase
           .from('inventory_items')
           .update({
-            available_quantity: (request.item.available_quantity || 0) - request.quantity
+            available_quantity: (vars.request.item?.available_quantity || 0) - vars.request.quantity
           })
-          .eq('id', request.item_id);
+          .eq('id', vars.request.item_id);
         if (invError) throw invError;
       }
 
       // 3. Log history
       await supabase.from('history').insert({
         action_type: 'approved',
-        employee_id: request.employee_id,
-        item_id: request.item_id,
-        quantity: request.quantity,
-        notes: `Request approved. Comment: ${vars.comment || 'None'}`
+        employee_id: vars.request.employee_id,
+        item_id: vars.request.item_id || null,
+        notes: `Request approved. Item: ${vars.request.item?.name || vars.request.item_name}. Comment: ${vars.comment || 'None'}`
       });
     },
     onSuccess: () => {
@@ -144,9 +142,9 @@ export default function Requests() {
         await supabase.from('history').insert({
           action_type: 'rejected',
           employee_id: request.employee_id,
-          item_id: request.item_id,
+          item_id: request.item_id || null,
           quantity: request.quantity,
-          notes: `Request rejected. Reason: ${vars.reason}`
+          notes: `Request rejected. Item: ${request.item?.name || request.item_name}. Reason: ${vars.reason}`
         });
       }
     },
@@ -165,17 +163,18 @@ export default function Requests() {
       const request = requests.find(r => r.id === vars.id);
       if (!request) throw new Error('Request not found');
 
-      // 1. Create final assignment
-      const { error: assignError } = await supabase
-        .from('assignments')
-        .insert([{
-          employee_id: request.employee_id,
-          item_id: request.item_id,
-          quantity: request.quantity,
-          status: 'assigned',
-          notes: `Completed by admin. Condition: ${vars.condition}`
-        }]);
-      if (assignError) throw assignError;
+      if (request.item_id) {
+        const { error: assignError } = await supabase
+          .from('assignments')
+          .insert([{
+            employee_id: request.employee_id,
+            item_id: request.item_id,
+            quantity: request.quantity,
+            status: 'assigned',
+            notes: `Completed by admin. Condition: ${vars.condition}`
+          }]);
+        if (assignError) throw assignError;
+      }
 
       // 2. Update request status to completed
       const { error: reqError } = await supabase
@@ -186,11 +185,11 @@ export default function Requests() {
 
       // 3. Log history
       await supabase.from('history').insert({
-        action_type: 'completed', // Use the new 'completed' type
+        action_type: 'completed',
         employee_id: request.employee_id,
-        item_id: request.item_id,
+        item_id: request.item_id || null,
         quantity: request.quantity,
-        notes: `Transfer completed. Condition: ${vars.condition}`
+        notes: `Transfer completed for ${request.item?.name || request.item_name}. Condition: ${vars.condition}`
       });
     },
     onSuccess: () => {
@@ -268,7 +267,7 @@ export default function Requests() {
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
                     <Package className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-sm font-medium">{request.item?.name}</span>
+                    <span className="text-sm font-medium">{request.item?.name || request.item_name}</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground ml-5">
                     Quantity: <span className="text-foreground">{request.quantity}</span>
@@ -510,7 +509,7 @@ export default function Requests() {
                 Approve Request
               </DialogTitle>
               <DialogDescription>
-                Confirm approval for {selectedRequest?.employee?.name}'s request for {selectedRequest?.item?.name}.
+                Confirm approval for {selectedRequest?.employee?.name}'s request for {selectedRequest?.item?.name || selectedRequest?.item_name}.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
@@ -532,7 +531,11 @@ export default function Requests() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsApproveDialogOpen(false)}>Cancel</Button>
               <Button 
-                onClick={() => approveMutation.mutate({ id: selectedRequest.id, comment: adminComment })}
+                onClick={() => approveMutation.mutate({ 
+                  id: selectedRequest.id, 
+                  comment: adminComment,
+                  request: selectedRequest 
+                })}
                 disabled={approveMutation.isPending}
                 className="bg-success hover:bg-success/90"
               >

@@ -62,6 +62,10 @@ export interface InventoryRequest {
   reviewedBy?: string;
   reviewed_by?: string;
   item?: InventoryItem;
+  itemName?: string;
+  item_name?: string;
+  category?: string;
+  category_name?: string;
   employee?: User;
   urgency?: string;
   expectedDate?: string;

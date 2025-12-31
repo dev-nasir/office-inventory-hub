@@ -33,7 +33,7 @@ export default function Auth() {
   const [signupPassword, setSignupPassword] = useState('');
   const [signupName, setSignupName] = useState('');
   const [signupDepartment, setSignupDepartment] = useState<Department | ''>('');
-  const [signupRole, setSignupRole] = useState<UserRole>('employee');
+  const [signupRole] = useState<UserRole>('employee');
   const [signupPhone, setSignupPhone] = useState('');
   const [signupAddress, setSignupAddress] = useState('');
 
@@ -268,35 +268,19 @@ export default function Auth() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-department">Department</Label>
-                        <Select value={signupDepartment} onValueChange={(value) => setSignupDepartment(value as Department)}>
-                          <SelectTrigger>
-                            <Building2 className="h-4 w-4 text-muted-foreground mr-2" />
-                            <SelectValue placeholder="Select Department" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {departments.map((dept) => (
-                              <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-role">Account Role</Label>
-                        <Select value={signupRole} onValueChange={(value) => setSignupRole(value as UserRole)}>
-                          <SelectTrigger>
-                            <User className="h-4 w-4 text-muted-foreground mr-2" />
-                            <SelectValue placeholder="Account Role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="employee">Employee</SelectItem>
-                            <SelectItem value="admin">Administrator</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-department">Department</Label>
+                      <Select value={signupDepartment} onValueChange={(value) => setSignupDepartment(value as Department)}>
+                        <SelectTrigger>
+                          <Building2 className="h-4 w-4 text-muted-foreground mr-2" />
+                          <SelectValue placeholder="Select Department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-2">

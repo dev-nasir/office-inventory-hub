@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Package, Search, Send, Check, Clock, X, Loader2, Plus } from 'lucide-react';
+import { Package, Search, Send, Check, Clock, X, Loader2, Plus, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { InventoryRequest } from '@/types/inventory';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -33,13 +33,11 @@ import { categoryFields } from '@/lib/categoryFields';
 export default function RequestItem() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [itemName, setItemName] = useState('');
   const [selectedItem, setSelectedItem] = useState<string | undefined>(undefined);
   const [requestQuantity, setRequestQuantity] = useState('1');
   const [requestNotes, setRequestNotes] = useState('');
-  const [dialogSearch, setDialogSearch] = useState('');
   const [urgency, setUrgency] = useState<string>('Normal');
   const [expectedDate, setExpectedDate] = useState<string>('');
   const [brand, setBrand] = useState<string>('');
@@ -98,21 +96,13 @@ export default function RequestItem() {
 
   const categories = INVENTORY_CATEGORIES;
 
-  const availableItems = inventoryItems.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
 
   const requestMutation = useMutation({
     mutationFn: async (vars: { 
-      itemId: string, 
+      itemId?: string,
+      itemName: string,
       quantity: number, 
-      notes: string,
-      urgency: string,
-      expectedDate?: string,
-      brand?: string
+      notes: string
     }) => {
       if (!user) throw new Error('Not authenticated');
       
@@ -120,12 +110,10 @@ export default function RequestItem() {
         .from('requests')
         .insert([{
           employee_id: user.id,
-          item_id: vars.itemId,
+          item_id: vars.itemId || null,
+          item_name: vars.itemName,
           quantity: vars.quantity,
           notes: vars.notes,
-          urgency: vars.urgency,
-          expected_date: vars.expectedDate || null,
-          brand: vars.brand || null,
           status: 'pending'
         }])
         .select()
@@ -148,12 +136,13 @@ export default function RequestItem() {
     if (itemId) {
       const item = inventoryItems.find(i => i.id === itemId);
       setSelectedItem(itemId);
+      setItemName(item?.name || '');
       setDialogCategory(item?.category || 'all');
     } else {
       setSelectedItem(undefined);
+      setItemName('');
       setDialogCategory('all');
     }
-    setDialogSearch('');
     setRequestQuantity('1');
     setRequestNotes('');
     setUrgency('Normal');
@@ -164,8 +153,8 @@ export default function RequestItem() {
   };
 
   const handleSubmitRequest = () => {
-    if (!selectedItem) {
-      toast.error('Please select an item');
+    if (!itemName.trim()) {
+      toast.error('Please enter an item name');
       return;
     }
     if (!requestNotes.trim()) {
@@ -173,12 +162,10 @@ export default function RequestItem() {
       return;
     }
     requestMutation.mutate({
-      itemId: selectedItem,
+      itemId: selectedItem || undefined,
+      itemName: itemName.trim(),
       quantity: parseInt(requestQuantity),
-      notes: requestNotes,
-      urgency: urgency,
-      expectedDate: expectedDate || undefined,
-      brand: brand || undefined,
+      notes: requestNotes
     });
   };
 
@@ -186,11 +173,6 @@ export default function RequestItem() {
     ? inventoryItems.find(item => item.id === selectedItem)
     : null;
 
-  const filteredItemsForDialog = inventoryItems.filter(item => {
-    const matchesCategory = dialogCategory === 'all' || item.category === dialogCategory;
-    const matchesSearch = item.name.toLowerCase().includes(dialogSearch.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
 
   const pendingRequests = myRequests.filter(r => r.status === 'pending');
 
@@ -235,7 +217,7 @@ export default function RequestItem() {
                 {pendingRequests.map((request) => (
                   <Badge key={request.id} variant="outline" className="gap-2 py-1.5">
                     <Package className="h-3 w-3" />
-                    {request.item?.name}
+                    {request.item?.name || request.item_name}
                     <span className="text-muted-foreground">x{request.quantity}</span>
                   </Badge>
                 ))}
@@ -244,118 +226,50 @@ export default function RequestItem() {
           </Card>
         )}
 
-        {/* Filters */}
-        <Card className="shadow-card">
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search and browse all items..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+        {/* My Requests Section */}
+        <Card className="shadow-card overflow-hidden">
+          <CardHeader className="border-b bg-secondary/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Recent Requests</CardTitle>
+                <CardDescription>Track and manage your inventory requests</CardDescription>
               </div>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Badge variant="outline" className="font-mono">
+                {myRequests.length} Total
+              </Badge>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Available Items Grid */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {availableItems.map((item) => (
-            <Card key={item.id} className="shadow-card hover:shadow-elegant transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Package className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                      {item.description || 'No description provided'}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 mt-3">
-                      <Badge variant="outline">{item.category}</Badge>
-                      <Badge 
-                        variant={(item.available_quantity || item.availableQuantity) > 0 ? 'secondary' : 'destructive'}
-                        className="font-normal"
-                      >
-                        {(item.available_quantity || item.availableQuantity) > 0 
-                          ? `${item.available_quantity || item.availableQuantity} in stock` 
-                          : 'Out of stock'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  className="w-full mt-4"
-                  variant={(item.available_quantity || item.availableQuantity) > 0 ? 'default' : 'outline'}
-                  onClick={() => openRequestDialog(item.id)}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Request Item
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {availableItems.length === 0 && !itemsLoading && (
-          <Card className="shadow-card">
-            <CardContent className="py-12 text-center">
-              <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-              <p className="text-muted-foreground">No items match your search</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {itemsLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        )}
-
-        {/* My Recent Requests */}
-        {myRequests.length > 0 && (
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="text-lg">My Requests</CardTitle>
-              <CardDescription>Track your inventory requests</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+          </CardHeader>
+          <CardContent className="p-0">
+            {myRequests.length > 0 ? (
+              <div className="divide-y divide-border">
                 {myRequests.slice(0, 10).map((request) => (
                   <div
                     key={request.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                    className="flex items-center justify-between p-4 hover:bg-secondary/20 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                         <Package className="h-5 w-5 text-primary" />
                       </div>
-                      <div>
-                        <p className="font-medium text-sm sm:text-base">{request.item?.name}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
-                          Qty: {request.quantity} • {new Date(request.created_at || request.createdAt).toLocaleDateString()}
-                        </p>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm sm:text-base truncate">{request.item?.name || request.item_name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-xs text-muted-foreground">
+                            Qty: {request.quantity}
+                          </p>
+                          <span className="text-muted-foreground/30">•</span>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(request.created_at || request.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(request.status)}
+                    <div className="flex items-center gap-3">
+                      <div className="hidden sm:block">
+                        {getStatusIcon(request.status)}
+                      </div>
                       <Badge
-                        className="capitalize"
+                        className="capitalize px-2.5 py-0.5"
                         variant={
                           request.status === 'pending'
                             ? 'secondary'
@@ -370,9 +284,32 @@ export default function RequestItem() {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <div className="py-20 flex flex-col items-center justify-center text-center px-4">
+                <div className="h-20 w-20 rounded-full bg-secondary/30 flex items-center justify-center mb-4">
+                  <Package className="h-10 w-10 text-muted-foreground/40" />
+                </div>
+                <h3 className="text-lg font-medium text-foreground">No requests yet</h3>
+                <p className="text-muted-foreground text-sm max-w-xs mt-1">
+                  You haven't submitted any inventory requests yet. Click the "New Request" button to get started.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-6"
+                  onClick={() => openRequestDialog()}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Submit Your First Request
+                </Button>
+              </div>
+            )}
+          </CardContent>
+          {myRequests.length > 10 && (
+            <div className="p-3 border-t bg-secondary/5 text-center">
+              <p className="text-xs text-muted-foreground">Showing 10 most recent requests</p>
+            </div>
+          )}
+        </Card>
 
         {/* Request Dialog */}
         <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
@@ -409,7 +346,6 @@ export default function RequestItem() {
                         <Label>Category *</Label>
                         <Select value={dialogCategory} onValueChange={(val) => {
                           setDialogCategory(val);
-                          setSelectedItem(undefined);
                           setBrand('');
                         }}>
                           <SelectTrigger className="h-9 text-sm">
@@ -423,60 +359,18 @@ export default function RequestItem() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="item-search">Search Item</Label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="item-search"
-                            placeholder="Type to filter..."
-                            value={dialogSearch}
-                            onChange={(e) => setDialogSearch(e.target.value)}
-                            className="pl-9 h-9 text-xs"
-                          />
-                        </div>
-                      </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="item" className="text-sm">Item Name *</Label>
-                      <Select 
-                        value={selectedItem || ''} 
-                        onValueChange={(value) => {
-                          if (!value || value === '_no_items' || value === '_loading') return;
-                          setSelectedItem(value);
-                          const item = inventoryItems.find(i => i.id === value);
-                          if (item) {
-                            setDialogCategory(item.category);
-                            setDialogSearch('');
-                          }
-                          setRequestQuantity('1');
-                        }}
-                      >
-                        <SelectTrigger className="h-10 text-sm">
-                          <SelectValue placeholder={itemsLoading ? "Loading items..." : "Choose an item..."} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {itemsLoading ? (
-                            <SelectItem value="_loading" disabled>
-                              <div className="flex items-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Loading inventory...</span>
-                              </div>
-                            </SelectItem>
-                          ) : filteredItemsForDialog.length > 0 ? (
-                            filteredItemsForDialog.map((item) => (
-                              <SelectItem key={item.id} value={item.id}>
-                                {item.name} (Stock: {item.available_quantity || item.availableQuantity || 0})
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="_no_items" disabled>
-                              No items found matching criteria
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="item-name" className="text-sm">Item Name *</Label>
+                      <Input
+                        id="item-name"
+                        placeholder="Enter the item you need (e.g., Laptop, Mouse, etc.)"
+                        value={itemName}
+                        onChange={(e) => setItemName(e.target.value)}
+                        className="h-10 text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">Type any item name you need</p>
                     </div>
                   </div>
 
@@ -575,7 +469,7 @@ export default function RequestItem() {
                   </Button>
                   <Button 
                     onClick={handleSubmitRequest}
-                    disabled={requestMutation.isPending || !selectedItem}
+                    disabled={requestMutation.isPending || !itemName.trim()}
                     className="min-w-[120px]"
                     size="sm"
                   >
@@ -596,7 +490,7 @@ export default function RequestItem() {
                 <div>
                   <h3 className="text-xl font-bold text-foreground">Request Submitted!</h3>
                   <p className="text-muted-foreground text-sm max-w-[280px] mt-2">
-                    Your request for <strong>{selectedItemData?.name}</strong> has been sent to the IT administrators for review.
+                    Your request for <strong>{itemName}</strong> has been sent to the IT administrators for review.
                   </p>
                 </div>
                 <div className="flex flex-col w-full gap-2 pt-4 px-6">
