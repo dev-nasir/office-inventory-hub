@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Package, Search, Send, Check, Clock, X, Loader2, Plus, AlertTriangle } from 'lucide-react';
+import { Package, Search, Send, Check, Clock, X, Loader2, Plus, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { InventoryRequest } from '@/types/inventory';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -43,6 +43,7 @@ export default function RequestItem() {
   const [brand, setBrand] = useState<string>('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [dialogCategory, setDialogCategory] = useState<string>('all');
+  const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
 
   // Fetch all inventory items (including out of stock)
   const { data: inventoryItems = [], isLoading: itemsLoading } = useQuery({
@@ -102,7 +103,10 @@ export default function RequestItem() {
       itemId?: string,
       itemName: string,
       quantity: number, 
-      notes: string
+      notes: string,
+      urgency: string,
+      expectedDate: string,
+      brand: string
     }) => {
       if (!user) throw new Error('Not authenticated');
       
@@ -114,6 +118,9 @@ export default function RequestItem() {
           item_name: vars.itemName,
           quantity: vars.quantity,
           notes: vars.notes,
+          urgency: vars.urgency,
+          expected_date: vars.expectedDate || null,
+          brand: vars.brand || null,
           status: 'pending'
         }])
         .select()
@@ -132,7 +139,59 @@ export default function RequestItem() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (vars: { 
+      id: string,
+      itemId?: string,
+      itemName: string,
+      quantity: number, 
+      notes: string,
+      urgency: string,
+      expectedDate: string,
+      brand: string
+    }) => {
+      const { error } = await supabase
+        .from('requests')
+        .update({
+          item_id: vars.itemId || null,
+          item_name: vars.itemName,
+          quantity: vars.quantity,
+          notes: vars.notes,
+          urgency: vars.urgency,
+          expected_date: vars.expectedDate || null,
+          brand: vars.brand || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', vars.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-requests'] });
+      setShowSuccess(true);
+      toast.success('Request updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update request');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('requests').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-requests'] });
+      toast.success('Request deleted');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete request');
+    },
+  });
+
   const openRequestDialog = (itemId?: string) => {
+    setEditingRequestId(null);
     if (itemId) {
       const item = inventoryItems.find(i => i.id === itemId);
       setSelectedItem(itemId);
@@ -165,8 +224,31 @@ export default function RequestItem() {
       itemId: selectedItem || undefined,
       itemName: itemName.trim(),
       quantity: parseInt(requestQuantity),
-      notes: requestNotes
+      notes: requestNotes,
+      urgency,
+      expectedDate,
+      brand
     });
+  };
+
+  const handleEditRequest = (request: any) => {
+    setEditingRequestId(request.id);
+    setItemName(request.item_name || request.item?.name || '');
+    setSelectedItem(request.item_id || undefined);
+    setRequestQuantity(String(request.quantity));
+    setRequestQuantity(String(request.quantity));
+    setRequestNotes(request.notes || '');
+    setUrgency(request.urgency || 'Normal');
+    setExpectedDate(request.expected_date || '');
+    setBrand(request.brand || '');
+    setIsRequestDialogOpen(true);
+    setShowSuccess(false);
+  };
+
+  const handleDeleteRequest = (id: string) => {
+    if (confirm('Are you sure you want to delete this request?')) {
+      deleteMutation.mutate(id);
+    }
   };
 
   const selectedItemData = selectedItem
@@ -184,6 +266,8 @@ export default function RequestItem() {
         return <Check className="h-4 w-4 text-success" />;
       case 'rejected':
         return <X className="h-4 w-4 text-destructive" />;
+      case 'completed':
+        return <Check className="h-4 w-4 text-green-600" />;
       default:
         return null;
     }
@@ -269,17 +353,45 @@ export default function RequestItem() {
                         {getStatusIcon(request.status)}
                       </div>
                       <Badge
-                        className="capitalize px-2.5 py-0.5"
+                        className={`capitalize px-2.5 py-0.5 ${
+                          request.status === 'completed' 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-100 border-transparent' 
+                            : ''
+                        }`}
                         variant={
                           request.status === 'pending'
                             ? 'secondary'
                             : request.status === 'approved'
                             ? 'default'
+                            : request.status === 'completed'
+                            ? 'outline'
                             : 'destructive'
                         }
                       >
                         {request.status}
                       </Badge>
+                      
+                      {request.status === 'pending' && (
+                        <div className="flex items-center gap-1 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary"
+                            onClick={() => handleEditRequest(request)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteRequest(request.id)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -317,7 +429,7 @@ export default function RequestItem() {
             {!showSuccess ? (
               <>
                 <DialogHeader>
-                  <DialogTitle>Submit Inventory Request</DialogTitle>
+                  <DialogTitle>{editingRequestId ? 'Edit Request' : 'Submit Inventory Request'}</DialogTitle>
                   <DialogDescription>
                     Provide details for your request. All fields marked with * are required.
                   </DialogDescription>
@@ -467,19 +579,59 @@ export default function RequestItem() {
                   <Button variant="outline" size="sm" onClick={() => setIsRequestDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button 
-                    onClick={handleSubmitRequest}
-                    disabled={requestMutation.isPending || !itemName.trim()}
-                    className="min-w-[120px]"
-                    size="sm"
-                  >
-                    {requestMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4 mr-2" />
-                    )}
-                    Submit Request
-                  </Button>
+                  {editingRequestId ? (
+                    <Button 
+                      onClick={() => {
+                         if (!itemName.trim()) {
+                            toast.error('Please enter an item name');
+                            return;
+                          }
+                          updateMutation.mutate({
+                            id: editingRequestId,
+                            itemId: selectedItem || undefined,
+                            itemName: itemName.trim(),
+                            quantity: parseInt(requestQuantity),
+                            notes: requestNotes,
+                            urgency,
+                            expectedDate,
+                            brand
+                          });
+                      }}
+                      disabled={updateMutation.isPending || !itemName.trim()}
+                      className="min-w-[120px]"
+                      size="sm"
+                    >
+                      {updateMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          Update Request
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handleSubmitRequest}
+                      disabled={requestMutation.isPending || !itemName.trim()}
+                      className="min-w-[120px]"
+                      size="sm"
+                    >
+                      {requestMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-4 w-4" />
+                          Submit Request
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </DialogFooter>
               </>
             ) : (
